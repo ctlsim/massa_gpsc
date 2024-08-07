@@ -10,6 +10,7 @@ import { Args } from '@massalabs/as-types';
 import {
   setOwner,
   onlyOwner,
+  ownerAddress
 } from '@massalabs/sc-standards/assembly/contracts/utils/ownership';
 
 const PROXY_KEY: StaticArray<u8> = [80, 88]; // == stringToBytes("PX");
@@ -28,11 +29,34 @@ export function constructor(_args: StaticArray<u8>): void {
   Storage.set(PROXY_KEY, [0]); // == Storage.set(PROXY_KEY, new Args().add(false).serialize());
 }
 
+export function changeOwner(args: StaticArray<u8>): void {
+  onlyOwner();
+  const owner = new Args(args).nextString().expect('Invalid owner');
+  setOwner(args);
+  generateEvent(`Proxy new owner: ${owner}`);
+}
+
+export function getOwner(args: StaticArray<u8>): StaticArray<u8> {
+  return new Args().add(ownerAddress(args)).serialize();
+}
+
+export function transferCoins(): void {
+  const coins = Context.transferredCoins();
+  generateEvent(`ProxySlow - received ${coins} coins`);
+}
+
+/*
+export function transferCoinsSmartContract(): void {
+  const args = new Args().add("transferCoins");
+  proxyCall(args);
+}
+*/
+
 export function installSmartContract(args: StaticArray<u8>): void {
   onlyOwner();
   generateEvent(`ProxySlow - installing smart contract...`);
   const _args = new Args(args);
-  const targetSc = _args.nextString().expect('');
+  const targetSc = _args.nextString().expect('Invalid target sc');
   _installSmartContract(targetSc);
   generateEvent(`Done install smart contract: ${targetSc}`);
 }

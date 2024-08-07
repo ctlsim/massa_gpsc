@@ -11,6 +11,7 @@
         "test_pslow_detect": "npm run build && tsx src/test_pslow_detect_proxy.ts",
         "test_pslow_owner": "npm run build && tsx src/test_pslow_owner.ts",
         "test_pslow_add": "npm run build && tsx src/test_pslow_upgade_add.ts",
+        "test_pslow_coins": "npm run build && tsx src/test_pslow_coins.ts",
         "prettier": "prettier '**/src/**/*.ts' --check && as-prettier --check assembly",
         "prettier:fix": "prettier '**/src/**/*.ts' --write && as-prettier --write assembly",
         "lint": "eslint .",
