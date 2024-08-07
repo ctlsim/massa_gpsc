@@ -23,6 +23,9 @@ function _installSmartContract(targetSc: string): void {
 export function constructor(_args: StaticArray<u8>): void {
   assert(Context.isDeployingContract());
   setOwner(new Args().add(Context.caller()).serialize());
+
+  // Init PROXY_KEY here otherwise the first call to proxyCall will forward fewer MAS
+  Storage.set(PROXY_KEY, [0]); // == Storage.set(PROXY_KEY, new Args().add(false).serialize());
 }
 
 export function installSmartContract(args: StaticArray<u8>): void {

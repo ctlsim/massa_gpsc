@@ -6,6 +6,7 @@ import {
   IEvent,
   MAX_GAS_DEPLOYMENT,
   MAX_GAS_EXECUTE_SC,
+  fromMAS,
 } from '@massalabs/massa-web3';
 import { readFileSync } from 'fs';
 
@@ -37,7 +38,7 @@ export async function deploySc(
       } as ISCData,
     ],
     chainId,
-    0n, // fees
+    fromMAS(0.1), // fees
     MAX_GAS_DEPLOYMENT,
     false, // wait for the first event to be emitted and print it into the console.
   );

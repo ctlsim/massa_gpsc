@@ -18,7 +18,7 @@ export function callSc(
   const deployerAccount = client.wallet().getBaseAccount()!;
   return client.smartContracts().callSmartContract(
     {
-      fee: 0n,
+      fee: fromMAS(0.1),
       maxGas: gas,
       coins: coins,
       targetAddress: scAddr,
