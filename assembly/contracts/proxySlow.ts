@@ -15,6 +15,8 @@ import {
 
 const PROXY_KEY: StaticArray<u8> = [80, 88]; // == stringToBytes("PX");
 const TARGET_SC_ADDRESS_KEY: StaticArray<u8> = [84, 83, 67]; // == stringToBytes("TSC");
+const ACL_ENABLE_KEY: StaticArray<u8> = [70, 65, 67, 76]; // == stringToBytes("FACL"); // ACL FLAG
+const ACL_PREFIX: StaticArray<u8> = [65]; // == stringToBytes("A"); // ACL PREFIX
 
 function _installSmartContract(targetSc: string): void {
   const bytes = new Args().add(targetSc).serialize();
@@ -27,6 +29,9 @@ export function constructor(_args: StaticArray<u8>): void {
 
   // Init PROXY_KEY here otherwise the first call to proxyCall will forward fewer MAS
   Storage.set(PROXY_KEY, [0]); // == Storage.set(PROXY_KEY, new Args().add(false).serialize());
+
+  // Init ACL_ENABLE_KEY (default: disabled)
+  Storage.set(ACL_ENABLE_KEY, [0])
 }
 
 export function changeOwner(args: StaticArray<u8>): void {
@@ -82,6 +87,14 @@ export function proxyCall(args: StaticArray<u8>): StaticArray<u8> {
     `Invalid function ${targetFunction} for sc ${targetSc}`,
   );
 
+  // Check ACL (if enabled)
+  if (Storage.get(ACL_ENABLE_KEY).at(0) == 1) {
+    const caller = Context.caller().toString();
+    const keyData = new Args().add(caller).serialize();
+    const aclKey = ACL_PREFIX.concat(keyData);
+    assert(Storage.has(aclKey), `ProxySlow - addr ${caller} not in ACL`);
+  }
+
   // Setup temp Storage
   Storage.set(PROXY_KEY, [1]); // == Storage.set(PROXY_KEY, new Args().add(true).serialize());
 
@@ -99,4 +112,50 @@ export function proxyCall(args: StaticArray<u8>): StaticArray<u8> {
 
 export function getSmartContract(): StaticArray<u8> {
   return new Args().add(_getSmartContract()).serialize();
+}
+
+// ACL flag toggle
+export function setACLFlag(args: StaticArray<u8>): void {
+  onlyOwner();
+  const _args = new Args(args);
+  const aclFlag = _args
+      .nextBool()
+      .expect('Unable to deserialize acl flag');
+  Storage.set(ACL_ENABLE_KEY, args);
+  generateEvent(`ProxySlow - acl flag changed to ${aclFlag}`);
+}
+
+export function getACLFlag(): StaticArray<u8> {
+  return Storage.get(ACL_ENABLE_KEY);
+}
+
+export function aclAllow(args: StaticArray<u8>): void {
+  // Add address to ACL list
+  onlyOwner();
+  const _args = new Args(args);
+  const allowAddr = _args
+      .nextString()
+      .expect('Unable to deserialize acl address');
+
+  const aclKey = ACL_PREFIX.concat(args);
+
+  if (!Storage.has(aclKey)) {
+    Storage.set(aclKey, []);
+    generateEvent(`ProxySlow - acl allow: ${allowAddr}`);
+  }
+}
+
+export function aclDisallow(args: StaticArray<u8>): void {
+  // Remove address from ACL list
+  onlyOwner();
+  const _args = new Args(args);
+  const disallowAddr = _args
+      .nextString()
+      .expect('Unable to deserialize acl address');
+
+  const aclKey = ACL_PREFIX.concat(args);
+  if (Storage.has(aclKey)) {
+    Storage.del(aclKey);
+    generateEvent(`ProxySlow - acl disallow: ${disallowAddr}`);
+  }
 }
